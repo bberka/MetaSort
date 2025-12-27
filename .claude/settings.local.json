@@ -4,7 +4,11 @@
       "Bash(dir:*)",
       "Bash(wc:*)",
       "Bash(cat:*)",
-      "Bash(cargo build:*)"
+      "Bash(cargo build:*)",
+      "Bash(git -C \"d:\\\\source\\\\bberka\\\\MetaSort\" remote -v)",
+      "Bash(git log:*)",
+      "Bash(cargo test:*)",
+      "Bash(cargo run:*)"
     ]
   }
 }

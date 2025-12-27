@@ -1,8 +1,13 @@
+// html_report.rs
+// Modified by Berkay (2025): Enhanced path handling for UNC paths
+// - Uses safe_canonicalize to avoid UNC path issues
+
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 use url::Url;
+use crate::path_utils;
 
 pub fn generate_html_report(
     output_dir: &Path,
@@ -19,11 +24,17 @@ pub fn generate_html_report(
     metadata_fields: &[&str],
 ) {
     let html_path = output_dir.join("MetaSort_Summary.html");
-    let mut file = File::create(&html_path).expect("Failed to create HTML report");
+    let mut file = match File::create(&html_path) {
+        Ok(f) => f,
+        Err(e) => {
+            eprintln!("[WARNING] Failed to create HTML report: {}", e);
+            return;
+        }
+    };
 
-    // Helper to get file:// URL
+    // Helper to get file:// URL with safe canonicalization for UNC paths
     fn file_url(path: &PathBuf) -> String {
-        let abs = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+        let abs = path_utils::safe_canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
         Url::from_file_path(&abs).unwrap().to_string()
     }
 

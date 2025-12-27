@@ -20,6 +20,9 @@ MetaSort is a high-performance Rust utility for processing and organizing Google
 2. **Standardized Logging**: Removed all emoji-based output and marketing fluff. Terminal output is now clean and optimized for logging/piping.
 3. **Batch I/O**: Switched from sequential movement to batched file operations to reduce filesystem overhead.
 4. **Performance**: 3-5x faster on typical datasets (10k+ files) compared to sequential processing.
+5. **Comprehensive Path Handling**: Full support for paths with spaces, quoted paths, UNC network paths (`\\server\share`), and mapped network drives. Automatic quote removal and path normalization.
+6. **CLI Mode**: Optional command-line arguments (`--input`, `--output`, `--concurrency`) alongside the existing interactive mode for scripting and automation.
+7. **Enhanced Error Handling**: Graceful failure recovery with actionable error messages and troubleshooting guidance, especially for network paths and permission issues.
 
 ---
 
@@ -46,12 +49,74 @@ cargo build --release
 
 ## Usage
 
+MetaSort supports both interactive mode (guided prompts) and CLI mode (command-line arguments).
+
+### Interactive Mode (Recommended for first-time users)
+
+```bash
+./target/release/metasort
+```
+
+Follow the on-screen prompts to:
+1. Specify input directory (drag-and-drop supported)
+2. Specify output directory
+3. Select concurrency level
+4. Choose whether to separate WhatsApp/Screenshots
+
+### CLI Mode (For automation and scripting)
+
 ```bash
 # Basic usage
 ./target/release/metasort --input "/path/to/source" --output "/path/to/destination"
 
-# Help and advanced flags
+# With all options
+./target/release/metasort \
+  --input "C:\My Photos\Takeout" \
+  --output "D:\Organized Photos" \
+  --concurrency medium \
+  --separate-whatsapp-screenshots \
+  --yes
+
+# View all options
 ./target/release/metasort --help
+```
+
+### Supported Path Types
+
+MetaSort handles various path formats on Windows:
+
+- **Paths with spaces**: `"C:\My Documents\Photos"` or `C:\My Documents\Photos`
+- **UNC network paths**: `\\server\share\folder` or `\\192.168.1.100\c$\Photos`
+- **Mapped network drives**: `Z:\Photos` (where Z: is mapped to network location)
+- **External drives**: `E:\Backup\Photos`
+- **Quoted paths**: Both single (`'...'`) and double (`"..."`) quotes supported
+
+**Note:** Network paths (UNC or mapped drives) may experience slower performance. MetaSort will display a warning and recommend using "Slow" concurrency mode.
+
+### Command-Line Options
+
+```
+Options:
+  -i, --input <INPUT_DIR>              Input directory (Google Photos Takeout folder)
+  -o, --output <OUTPUT_DIR>            Output directory (where MetaSort creates working folders)
+  -c, --concurrency <LEVEL>            Concurrency level: slow, medium, unlimited [default: medium]
+      --separate-whatsapp-screenshots  Separate WhatsApp and Screenshot images
+  -y, --yes                            Skip confirmation prompts
+  -h, --help                           Print help
+  -V, --version                        Print version
+```
+
+### Examples
+
+```bash
+# Process local folder with medium concurrency
+metasort -i "C:\Takeout" -o "D:\Output" -c medium
+
+# Process network share with slow concurrency (recommended)
+metasort -i "\\server\photos" -o "C:\Local Output" -c slow --yes
+
+# Interactive mode with all prompts
+metasort
 ```
 
 ---

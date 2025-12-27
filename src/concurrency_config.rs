@@ -2,12 +2,13 @@
 // Global concurrency configuration for MetaSort
 // Copyright (c) 2025 - Sanmith S.
 // Portions Copyright (c) 2025 - Berkay.
+// Modified by Berkay (2025): Added CLI support functions
 
 use std::sync::OnceLock;
 use std::io::{self, Write};
 
 /// Concurrency level options for parallel processing
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ConcurrencyLevel {
     Slow,
     Medium,
@@ -73,4 +74,21 @@ pub fn initialize_concurrency() -> ConcurrencyLevel {
 /// Returns Medium as default if not initialized
 pub fn get_concurrency_level() -> ConcurrencyLevel {
     *CONCURRENCY_LEVEL.get().unwrap_or(&ConcurrencyLevel::Medium)
+}
+
+/// Set concurrency level programmatically (for CLI mode)
+/// Returns true if successfully set, false if already initialized
+pub fn set_concurrency_level(level: ConcurrencyLevel) -> bool {
+    CONCURRENCY_LEVEL.set(level).is_ok()
+}
+
+/// Parse concurrency level from string (for CLI mode)
+/// Accepts: "slow"/"1", "medium"/"2", "unlimited"/"3"
+pub fn parse_concurrency_level(level: &str) -> Option<ConcurrencyLevel> {
+    match level.trim().to_lowercase().as_str() {
+        "slow" | "1" => Some(ConcurrencyLevel::Slow),
+        "medium" | "2" => Some(ConcurrencyLevel::Medium),
+        "unlimited" | "3" => Some(ConcurrencyLevel::Unlimited),
+        _ => None,
+    }
 }
