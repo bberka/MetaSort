@@ -102,5 +102,5 @@ a:hover {{ color: #3aafa9; text-decoration: underline; }}\
         csv_links, log_links, meta_links
     );
     let _ = writeln!(file, "{}", html);
-    println!("\n📄 HTML summary report written to: {:?}", html_path);
+    println!("\n[SUCCESS] HTML summary report written to: {:?}", html_path);
 } 

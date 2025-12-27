@@ -111,7 +111,7 @@ pub fn extract_metadata(base_path: &str) -> (Vec<MediaMetadata>, Vec<PathBuf>) {
     // Handle unpaired media
     if !unpaired_media.is_empty() {
         println!(
-            "\n⚠️  No .json found for {} out of {} files ({}%).\nWhat should MetaSort do?\n1. Skip and move to 'Unknown Time'\n2. Try to guess timestamp from filename\nEnter 1 or 2:",
+            "\n[WARNING] No .json found for {} out of {} files ({}%).\nWhat should MetaSort do?\n1. Skip and move to 'Unknown Time'\n2. Try to guess timestamp from filename\nEnter 1 or 2:",
             unpaired_media.len(), paired_media.len() + unpaired_media.len(), (unpaired_media.len() * 100) / (paired_media.len() + unpaired_media.len())
         );
         let mut input = String::new();
@@ -149,8 +149,10 @@ pub fn extract_metadata(base_path: &str) -> (Vec<MediaMetadata>, Vec<PathBuf>) {
 
 fn print_progress(done: usize, total: usize) {
     let percent = if total > 0 { (done * 100) / total } else { 100 };
-    let bar = format!("{}{}", "🟩".repeat(percent / 4), "⬜".repeat(25 - percent / 4));
-    print!("\r🔍 Extracting metadata: [{}] {}% ({} / {})", bar, percent, done, total);
+    let filled = percent / 4;
+    let empty = 25 - filled;
+    let bar = format!("{}{}", "=".repeat(filled), "-".repeat(empty));
+    print!("\rExtracting metadata: [{}] {}% ({} / {})", bar, percent, done, total);
     let _ = std::io::stdout().flush();
     if done == total {
         println!();

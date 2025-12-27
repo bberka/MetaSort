@@ -32,7 +32,7 @@ pub fn get_installation_instructions() -> String {
     match env::consts::OS {
         "windows" => {
             r#"
-📋 Windows Installation Instructions:
+Windows Installation Instructions:
 
 1. Install Rust: https://rustup.rs/
 2. Install exiftool using one of these methods:
@@ -57,7 +57,7 @@ pub fn get_installation_instructions() -> String {
         },
         "macos" => {
             r#"
-📋 macOS Installation Instructions:
+macOS Installation Instructions:
 
 1. Install Rust: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 2. Install exiftool:
@@ -68,7 +68,7 @@ pub fn get_installation_instructions() -> String {
         },
         _ => {
             r#"
-📋 Linux Installation Instructions:
+Linux Installation Instructions:
 
 1. Install Rust: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 2. Install exiftool:

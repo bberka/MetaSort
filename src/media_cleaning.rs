@@ -64,14 +64,16 @@ pub fn ask_and_separate_whatsapp_screenshots(base_path: &str, separate_wa_sc: bo
             }
         }
     }
-    println!("\n🧹 WhatsApp/Screenshot separation complete! Processed {} files.", processed);
+    println!("\n[SUCCESS] WhatsApp/Screenshot separation complete! Processed {} files.", processed);
 }
 
 fn print_progress(done: usize, total: usize, file: &Path) {
     let percent = if total > 0 { (done * 100) / total } else { 100 };
-    let bar = "🧹".repeat(percent / 4);
+    let filled = percent / 4;
+    let empty = 25 - filled;
+    let bar = format!("{}{}", "=".repeat(filled), "-".repeat(empty));
     let fname = file.file_name().and_then(|n| n.to_str()).unwrap_or("");
-    print!("\r🧹 Cleaning: {} {}% ({}/{}) | {}", bar, percent, done, total, fname);
+    print!("\rCleaning: [{}] {}% ({}/{}) | {}", bar, percent, done, total, fname);
     let _ = io::stdout().flush();
     if done == total {
         println!();
@@ -123,6 +125,6 @@ pub fn clean_json_filenames(base_path: &str) {
             }
         }
     }
-    let summary = format!("\n🧹 JSON filename cleaning complete.\n");
+    let summary = format!("\n[SUCCESS] JSON filename cleaning complete.\n");
     let _ = log_file.write_all(summary.as_bytes());
 } 

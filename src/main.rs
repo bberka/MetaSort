@@ -55,7 +55,7 @@ fn main() {
     }
     
     MetaSortUI::print_success("ExifTool found and ready!");
-    println!("\n📂 Please drag and drop your Google Photos Takeout folder here, or specify the folder path:");
+    println!("\nPlease drag and drop your Google Photos Takeout folder here, or specify the folder path:");
     let mut input = String::new();
     io::stdin().read_line(&mut input).expect("Failed to read line");
     let input_dir = input.trim();
@@ -74,7 +74,7 @@ fn main() {
     }
 
     // Prompt for output folder
-    println!("\n📁 Please specify the output folder where MetaSort should work (originals will be untouched):");
+    println!("\nPlease specify the output folder where MetaSort should work (originals will be untouched):");
     let mut output = String::new();
     io::stdin().read_line(&mut output).expect("Failed to read line");
     let output_dir = PathBuf::from(output.trim());
@@ -205,7 +205,8 @@ fn count_log_errors(logs_dir: &PathBuf) -> usize {
     if let Ok(entries) = fs::read_dir(logs_dir) {
         for entry in entries.flatten() {
             if let Ok(content) = fs::read_to_string(entry.path()) {
-                errors += content.matches("❌").count();
+                errors += content.matches("[ERROR]").count();
+                errors += content.matches("[FAILED]").count();
             }
         }
     }

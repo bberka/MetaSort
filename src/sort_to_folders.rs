@@ -167,8 +167,8 @@ pub fn sort_files_to_folders(input_dir: &Path, output_dir: &Path, failed_guess_p
     csv_report::write_csv_report(&csv_report_folder, &mkv_info, "mkv_files.csv");
     csv_report::write_csv_report(&csv_report_folder, &failed_guess_info, "failed_filename_guess.csv");
     log_to_file(&logs_dir, "sorting.log", "CSV reports written for Photos, Videos, Unknown Time, and mkv_files.");
-    println!("\n📦 Sorting complete! Sorted {} files.", processed);
-    println!("\n📄 CSV files are added in: {}\nPlease keep this folder safe for future use!", csv_report_folder.display());
+    println!("\n[SUCCESS] Sorting complete! Sorted {} files.", processed);
+    println!("\nCSV files are added in: {}\nPlease keep this folder safe for future use!", csv_report_folder.display());
 
     let failed_guess_folder = output_dir.join("Media Files").join("Unknown Time").join("Failed Filename Guess");
     let _ = fs::create_dir_all(&failed_guess_folder);
@@ -205,8 +205,10 @@ fn month_name(month: u32) -> &'static str {
 
 fn print_progress(done: usize, total: usize) {
     let percent = if total > 0 { (done * 100) / total } else { 100 };
-    let bar = format!("{}{}", "🟨".repeat(percent / 4), "⬜".repeat(25 - percent / 4));
-    print!("\r📦 Sorting: [{}] {}% ({} / {})", bar, percent, done, total);
+    let filled = percent / 4;
+    let empty = 25 - filled;
+    let bar = format!("{}{}", "=".repeat(filled), "-".repeat(empty));
+    print!("\rSorting: [{}] {}% ({} / {})", bar, percent, done, total);
     let _ = io::stdout().flush();
     if done == total {
         println!();

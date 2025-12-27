@@ -42,19 +42,19 @@ impl MetaSortUI {
     }
 
     pub fn print_success(message: &str) {
-        println!("✅ {}", message);
+        println!("[SUCCESS] {}", message);
     }
 
     pub fn print_warning(message: &str) {
-        println!("⚠️  {}", message);
+        println!("[WARNING] {}", message);
     }
 
     pub fn print_error(message: &str) {
-        println!("❌ {}", message);
+        println!("[ERROR] {}", message);
     }
 
     pub fn print_info(message: &str) {
-        println!("ℹ️  {}", message);
+        println!("[INFO] {}", message);
     }
 
     pub fn start_main_progress(&mut self, total: u64, message: &str) {
@@ -92,23 +92,23 @@ impl MetaSortUI {
         println!("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         println!("                           MetaSort Summary");
         println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        println!("  📸 Photos processed:     {}", photos);
-        println!("  🎥 Videos processed:     {}", videos);
-        println!("  💬 WhatsApp images:      {}", whatsapp);
-        println!("  📱 Screenshots:          {}", screenshots);
-        println!("  ❓ Unknown time:         {}", unknown);
-        println!("  🎬 MKV files:            {}", mkv);
-        println!("  📊 Total files:          {}", total);
-        println!("  ⚠️  Errors encountered:   {}", errors);
-        println!("  📁 Output location:      {}", output_path);
+        println!("  Photos processed:     {}", photos);
+        println!("  Videos processed:     {}", videos);
+        println!("  WhatsApp images:      {}", whatsapp);
+        println!("  Screenshots:          {}", screenshots);
+        println!("  Unknown time:         {}", unknown);
+        println!("  MKV files:            {}", mkv);
+        println!("  Total files:          {}", total);
+        println!("  Errors encountered:   {}", errors);
+        println!("  Output location:      {}", output_path);
         println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     }
 
     pub fn print_footer() {
         println!("\n");
         println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        println!("  💖 Like my work? Please consider donating! 💖");
-        println!("  🌟 Support MetaSort: https://upier.vercel.app/pay/sanmith@superyes");
+        println!("  Like my work? Please consider donating!");
+        println!("  Support MetaSort: https://upier.vercel.app/pay/sanmith@superyes");
         println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     }
 } 

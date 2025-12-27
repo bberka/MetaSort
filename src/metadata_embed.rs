@@ -111,17 +111,19 @@ fn process_single_metadata(
 
     let status = get_exiftool_command()
         .args(&args)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
         .status();
 
     match status {
         Ok(status) if status.success() => {
-            logger.log(&format!("✅ Embedded metadata. {}", log_msg));
+            logger.log(&format!("[SUCCESS] Embedded metadata. {}", log_msg));
         }
         Ok(_) => {
-            logger.log(&format!("❌ Failed to embed metadata. {}", log_msg));
+            logger.log(&format!("[FAILED] Failed to embed metadata. {}", log_msg));
         }
         Err(_) => {
-            logger.log(&format!("❌ Error running exiftool. {}", log_msg));
+            logger.log(&format!("[ERROR] Error running exiftool. {}", log_msg));
         }
     }
 
@@ -136,13 +138,16 @@ pub fn embed_metadata_all(metadata_list: &[MediaMetadata], log_dir: &Path) {
     let _log_file = File::create(&log_path).expect("Failed to create log file");
 
     // Prompt 1: Metadata vs Filename choice
-    println!("\n🧐 Do you want to embed date/time for WhatsApp & Screenshot images based on their  \n1. Metadata\n2. Filename\n");
+    println!("\nDo you want to embed date/time for WhatsApp & Screenshot images based on their:");
+    println!("1. Metadata");
+    println!("2. Filename");
+    println!("Enter 1 or 2:");
     let mut input = String::new();
     io::stdin().read_line(&mut input).expect("Failed to read line");
     let use_filename = matches!(input.trim(), "2");
 
     // Prompt 2: Concurrency level choice
-    println!("\n⚡ Select processing speed (concurrency level):");
+    println!("\nSelect processing speed (concurrency level):");
     println!("1. Slow (2-4 threads) - For limited resources");
     println!("2. Medium (half CPU cores) - RECOMMENDED for balanced performance");
     println!("3. Unlimited (all CPU cores) - Maximum speed, high resource usage");
@@ -153,12 +158,12 @@ pub fn embed_metadata_all(metadata_list: &[MediaMetadata], log_dir: &Path) {
 
     let concurrency_level = ConcurrencyLevel::from_user_input(&concurrency_input)
         .unwrap_or_else(|| {
-            println!("⚠️  Invalid input, defaulting to Medium (recommended)");
+            println!("[WARNING] Invalid input, defaulting to Medium (recommended)");
             ConcurrencyLevel::Medium
         });
 
     let thread_count = concurrency_level.get_thread_count();
-    println!("🔧 Using {} threads for parallel processing\n", thread_count);
+    println!("Using {} threads for parallel processing\n", thread_count);
 
     // Configure Rayon thread pool
     let pool = ThreadPoolBuilder::new()
@@ -190,13 +195,15 @@ pub fn embed_metadata_all(metadata_list: &[MediaMetadata], log_dir: &Path) {
     logger.flush();
 
     let final_processed = processed.load(Ordering::SeqCst);
-    println!("\n✅ Metadata embedding complete! Embedded metadata for {} files. Log: {:?}", final_processed, log_path);
+    println!("\n[SUCCESS] Metadata embedding complete! Embedded metadata for {} files. Log: {:?}", final_processed, log_path);
 }
 
 fn print_progress(done: usize, total: usize) {
     let percent = if total > 0 { (done * 100) / total } else { 100 };
-    let bar = format!("{}{}", "🟦".repeat(percent / 4), "⬜".repeat(25 - percent / 4));
-    print!("\r✍️  Embedding metadata: [{}] {}% ({} / {})", bar, percent, done, total);
+    let filled = percent / 4;
+    let empty = 25 - filled;
+    let bar = format!("{}{}", "=".repeat(filled), "-".repeat(empty));
+    print!("\rEmbedding metadata: [{}] {}% ({} / {})", bar, percent, done, total);
     let _ = std::io::stdout().flush();
     if done == total {
         println!();
