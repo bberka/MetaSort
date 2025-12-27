@@ -3,10 +3,15 @@ use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 use serde_json::Value;
 use chrono::{TimeZone, Utc};
-use crate::utils::log_to_file;
+use crate::utils::{log_to_file, BufferedLogger};
 use std::io;
 use std::io::Write;
 use crate::filename_date_guess::extract_date_from_filename;
+use rayon::prelude::*;
+use rayon::ThreadPoolBuilder;
+use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use crate::concurrency_config::get_concurrency_level;
 
 #[derive(Debug, Clone)]
 pub struct MediaMetadata {
@@ -58,23 +63,39 @@ pub fn extract_metadata(base_path: &str) -> (Vec<MediaMetadata>, Vec<PathBuf>) {
 
     let paired_media: Vec<PathBuf> = media_json_pairs.iter().map(|(m, _)| m.clone()).collect();
     let unpaired_media: Vec<PathBuf> = all_media_files.into_iter().filter(|m| !paired_media.contains(m)).collect();
-    let mut metadata_list = Vec::new();
-    let mut failed_guess_paths = Vec::new();
+
+    // Thread-safe collection for metadata
+    let metadata_list = Arc::new(Mutex::new(Vec::new()));
     let total = media_json_pairs.len();
-    let mut processed = 0;
-    for (media_path, json_path) in &media_json_pairs {
+    let processed = Arc::new(AtomicUsize::new(0));
+
+    // Create thread-safe logger
+    let logger = Arc::new(BufferedLogger::new(&logs_dir, "metadata_extraction.log", 50));
+
+    // Get concurrency configuration and create thread pool
+    let concurrency_level = get_concurrency_level();
+    let thread_count = concurrency_level.get_thread_count();
+
+    let pool = ThreadPoolBuilder::new()
+        .num_threads(thread_count)
+        .build()
+        .expect("Failed to create thread pool");
+
+    // Parallel processing of paired media/JSON files
+    pool.install(|| {
+        media_json_pairs.par_iter().for_each(|(media_path, json_path)| {
         let json_str = match fs::read_to_string(json_path) {
             Ok(s) => s,
             Err(e) => {
-                log_to_file(&logs_dir, "metadata_extraction.log", &format!("Failed to read JSON for {:?}: {}", json_path, e));
-                continue;
+                logger.log(&format!("Failed to read JSON for {:?}: {}", json_path, e));
+                return;
             }
         };
         let v: Value = match serde_json::from_str(&json_str) {
             Ok(val) => val,
             Err(e) => {
-                log_to_file(&logs_dir, "metadata_extraction.log", &format!("Failed to parse JSON for {:?}: {}", json_path, e));
-                continue;
+                logger.log(&format!("Failed to parse JSON for {:?}: {}", json_path, e));
+                return;
             }
         };
         // Extract timestamp and convert to EXIF format (original date only)
@@ -95,7 +116,7 @@ pub fn extract_metadata(base_path: &str) -> (Vec<MediaMetadata>, Vec<PathBuf>) {
         let camera_make = v["cameraMake"].as_str().map(|s| s.to_string());
         let camera_model = v["cameraModel"].as_str().map(|s| s.to_string());
 
-        metadata_list.push(MediaMetadata {
+        metadata_list.lock().unwrap().push(MediaMetadata {
             media_path: media_path.clone(),
             _json_path: json_path.clone(),
             exif_date,
@@ -105,9 +126,17 @@ pub fn extract_metadata(base_path: &str) -> (Vec<MediaMetadata>, Vec<PathBuf>) {
             camera_make,
             camera_model,
         });
-        processed += 1;
-        print_progress(processed, total);
-    }
+        let current = processed.fetch_add(1, Ordering::SeqCst) + 1;
+        print_progress(current, total);
+        });
+    });
+
+    // Flush logger
+    logger.flush();
+
+    // Unwrap Arc<Mutex<_>> to get the vector back
+    let mut metadata_list = Arc::try_unwrap(metadata_list).unwrap().into_inner().unwrap();
+    let mut failed_guess_paths = Vec::new();
     // Handle unpaired media
     if !unpaired_media.is_empty() {
         println!(

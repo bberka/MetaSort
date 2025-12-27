@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(wc:*)",
+      "Bash(cat:*)",
+      "Bash(cargo build:*)"
+    ]
+  }
+}

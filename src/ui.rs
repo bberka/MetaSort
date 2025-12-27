@@ -28,8 +28,9 @@ impl MetaSortUI {
 ┃                                                                       ┃
 ┃              MetaSort - Google Photos Takeout Organizer!              ┃
 ┃                                                                       ┃
-┃                           Version 1.0                                 ┃
-┃                      Developed by Sanmith S                           ┃
+┃                           Version 1.1.0                               ┃
+┃                          Improved by bberka                           ┃
+┃                     Originally Developed by Sanmith S                 ┃
 ┃                    Cross-platform (macOS & Windows)                   ┃
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 "#);

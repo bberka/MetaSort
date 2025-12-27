@@ -3,10 +3,15 @@ use std::io;
 use std::fs;
 use chrono::Datelike;
 use crate::csv_report;
-use crate::utils::log_to_file;
+use crate::utils::{log_to_file, BufferedLogger};
 use std::io::Write;
 use serde_json;
 use crate::platform::get_exiftool_command;
+use rayon::prelude::*;
+use rayon::ThreadPoolBuilder;
+use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use crate::concurrency_config::get_concurrency_level;
 
 /// Main function to organize files into folders by type and date.
 pub fn sort_files_to_folders(input_dir: &Path, output_dir: &Path, failed_guess_paths: &Vec<PathBuf>, separate_wa_sc: bool) {
@@ -18,12 +23,12 @@ pub fn sort_files_to_folders(input_dir: &Path, output_dir: &Path, failed_guess_p
         "f4v", "wmv", "asf", "rm", "rmvb", "vob", "ogv", "mxf", "dv", "divx", "xvid"
     ];
 
-    // Collect file info for each category
-    let mut photos_info = Vec::new();
-    let mut videos_info = Vec::new();
-    let mut unknown_info = Vec::new();
-    let mut mkv_info = Vec::new();
-    let mut failed_guess_info = Vec::new();
+    // Thread-safe collections for file info
+    let photos_info = Arc::new(Mutex::new(Vec::new()));
+    let videos_info = Arc::new(Mutex::new(Vec::new()));
+    let unknown_info = Arc::new(Mutex::new(Vec::new()));
+    let mkv_info = Arc::new(Mutex::new(Vec::new()));
+    let failed_guess_info = Arc::new(Mutex::new(Vec::new()));
 
     let logs_dir = output_dir.join("Technical Files").join("logs");
 
@@ -39,8 +44,23 @@ pub fn sort_files_to_folders(input_dir: &Path, output_dir: &Path, failed_guess_p
         }
     }).collect();
     let total = all_media_files.len();
-    let mut processed = 0;
-    for entry in all_media_files {
+    let processed = Arc::new(AtomicUsize::new(0));
+
+    // Create thread-safe logger
+    let logger = Arc::new(BufferedLogger::new(&logs_dir, "sorting.log", 50));
+
+    // Get concurrency configuration and create thread pool
+    let concurrency_level = get_concurrency_level();
+    let thread_count = concurrency_level.get_thread_count();
+
+    let pool = ThreadPoolBuilder::new()
+        .num_threads(thread_count)
+        .build()
+        .expect("Failed to create thread pool");
+
+    // Parallel processing
+    pool.install(|| {
+        all_media_files.par_iter().for_each(|entry| {
         let path = entry.path();
         if path.is_file() {
             let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
@@ -100,28 +120,28 @@ pub fn sort_files_to_folders(input_dir: &Path, output_dir: &Path, failed_guess_p
                     dest_folder.push(format!("{}", dt.year()));
                     dest_folder.push(format!("{}", month_name(dt.month())));
                 }
-                photos_info.push((filename.clone(), file_type.clone(), date_str.clone(), image_size.clone(), human_readable_size(file_size), file_size));
+                photos_info.lock().unwrap().push((filename.clone(), file_type.clone(), date_str.clone(), image_size.clone(), human_readable_size(file_size), file_size));
             } else if separate_wa_sc && is_sc {
                 dest_folder.push("Screenshots");
                 if let Some(dt) = parse_exif_date(&date_str) {
                     dest_folder.push(format!("{}", dt.year()));
                     dest_folder.push(format!("{}", month_name(dt.month())));
                 }
-                photos_info.push((filename.clone(), file_type.clone(), date_str.clone(), image_size.clone(), human_readable_size(file_size), file_size));
+                photos_info.lock().unwrap().push((filename.clone(), file_type.clone(), date_str.clone(), image_size.clone(), human_readable_size(file_size), file_size));
             } else if ext == "mkv" {
                 let _file_category = "mkv_files".to_string();
                 dest_folder.push("mkv_files");
-                mkv_info.push((filename.clone(), file_type.clone(), date_str.clone(), image_size.clone(), human_readable_size(file_size), file_size));
+                mkv_info.lock().unwrap().push((filename.clone(), file_type.clone(), date_str.clone(), image_size.clone(), human_readable_size(file_size), file_size));
             } else if date_str.is_empty() {
                 if failed_guess_paths.contains(&path.to_path_buf()) {
                     let _file_category = "Failed Filename Guess".to_string();
                     dest_folder.push("Unknown Time");
                     dest_folder.push("Failed Filename Guess");
-                    failed_guess_info.push((filename.clone(), file_type.clone(), date_str.clone(), image_size.clone(), human_readable_size(file_size), file_size));
+                    failed_guess_info.lock().unwrap().push((filename.clone(), file_type.clone(), date_str.clone(), image_size.clone(), human_readable_size(file_size), file_size));
                 } else {
                     let _file_category = "Unknown Time".to_string();
                     dest_folder.push("Unknown Time");
-                    unknown_info.push((filename.clone(), file_type.clone(), date_str.clone(), image_size.clone(), human_readable_size(file_size), file_size));
+                    unknown_info.lock().unwrap().push((filename.clone(), file_type.clone(), date_str.clone(), image_size.clone(), human_readable_size(file_size), file_size));
                 }
             } else if mime_type.starts_with("video") || ["mp4","mov","avi","webm","3gp","m4v","mpg","mpeg","mts","m2ts","ts","flv","f4v","wmv","asf","rm","rmvb","vob","ogv","mxf","dv","divx","xvid"].contains(&ext.as_str()) {
                 // Video
@@ -131,7 +151,7 @@ pub fn sort_files_to_folders(input_dir: &Path, output_dir: &Path, failed_guess_p
                     dest_folder.push(format!("{}", dt.year()));
                     dest_folder.push(format!("{}", month_name(dt.month())));
                 }
-                videos_info.push((filename.clone(), file_type.clone(), date_str.clone(), image_size.clone(), human_readable_size(file_size), file_size));
+                videos_info.lock().unwrap().push((filename.clone(), file_type.clone(), date_str.clone(), image_size.clone(), human_readable_size(file_size), file_size));
             } else {
                 // Photo
                 let _file_category = "Photos".to_string();
@@ -140,7 +160,7 @@ pub fn sort_files_to_folders(input_dir: &Path, output_dir: &Path, failed_guess_p
                     dest_folder.push(format!("{}", dt.year()));
                     dest_folder.push(format!("{}", month_name(dt.month())));
                 }
-                photos_info.push((filename.clone(), file_type.clone(), date_str.clone(), image_size.clone(), human_readable_size(file_size), file_size));
+                photos_info.lock().unwrap().push((filename.clone(), file_type.clone(), date_str.clone(), image_size.clone(), human_readable_size(file_size), file_size));
             }
             // Create destination folder if needed
             let _ = fs::create_dir_all(&dest_folder);
@@ -148,16 +168,27 @@ pub fn sort_files_to_folders(input_dir: &Path, output_dir: &Path, failed_guess_p
             // Copy file
             match fs::copy(path, &dest_path) {
                 Ok(_) => {
-                    log_to_file(&logs_dir, "sorting.log", &format!("Copied {:?} to {:?}", path.file_name().unwrap_or_default(), dest_path));
+                    logger.log(&format!("Copied {:?} to {:?}", path.file_name().unwrap_or_default(), dest_path));
                 }
                 Err(e) => {
-                    log_to_file(&logs_dir, "sorting.log", &format!("Failed to copy {:?} to {:?}: {}", path.file_name().unwrap_or_default(), dest_path, e));
+                    logger.log(&format!("Failed to copy {:?} to {:?}: {}", path.file_name().unwrap_or_default(), dest_path, e));
                 }
             }
-            processed += 1;
-            print_progress(processed, total);
+            let current = processed.fetch_add(1, Ordering::SeqCst) + 1;
+            print_progress(current, total);
         }
-    }
+        });
+    });
+
+    // Flush logger
+    logger.flush();
+
+    // Unwrap Arc<Mutex<_>> to get the vectors back
+    let photos_info = Arc::try_unwrap(photos_info).unwrap().into_inner().unwrap();
+    let videos_info = Arc::try_unwrap(videos_info).unwrap().into_inner().unwrap();
+    let unknown_info = Arc::try_unwrap(unknown_info).unwrap().into_inner().unwrap();
+    let mkv_info = Arc::try_unwrap(mkv_info).unwrap().into_inner().unwrap();
+    let failed_guess_info = Arc::try_unwrap(failed_guess_info).unwrap().into_inner().unwrap();
     // Write CSVs for each category in CSV Report folder
     let csv_report_folder = output_dir.join("Technical Files").join("CSV Report");
     let _ = fs::create_dir_all(&csv_report_folder);
@@ -167,7 +198,8 @@ pub fn sort_files_to_folders(input_dir: &Path, output_dir: &Path, failed_guess_p
     csv_report::write_csv_report(&csv_report_folder, &mkv_info, "mkv_files.csv");
     csv_report::write_csv_report(&csv_report_folder, &failed_guess_info, "failed_filename_guess.csv");
     log_to_file(&logs_dir, "sorting.log", "CSV reports written for Photos, Videos, Unknown Time, and mkv_files.");
-    println!("\n[SUCCESS] Sorting complete! Sorted {} files.", processed);
+    let final_processed = processed.load(Ordering::SeqCst);
+    println!("\n[SUCCESS] Sorting complete! Sorted {} files.", final_processed);
     println!("\nCSV files are added in: {}\nPlease keep this folder safe for future use!", csv_report_folder.display());
 
     let failed_guess_folder = output_dir.join("Media Files").join("Unknown Time").join("Failed Filename Guess");

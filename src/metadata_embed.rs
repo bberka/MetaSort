@@ -12,36 +12,7 @@ use crate::metadata_extraction::MediaMetadata;
 use crate::filename_date_guess::extract_date_from_filename;
 use crate::utils::BufferedLogger;
 use crate::platform::get_exiftool_command;
-
-#[derive(Debug, Clone, Copy)]
-enum ConcurrencyLevel {
-    Slow,
-    Medium,
-    Unlimited,
-}
-
-impl ConcurrencyLevel {
-    fn get_thread_count(&self) -> usize {
-        let num_cpus = std::thread::available_parallelism()
-            .map(|n| n.get())
-            .unwrap_or(4);
-
-        match self {
-            ConcurrencyLevel::Slow => num_cpus.min(4).max(2),
-            ConcurrencyLevel::Medium => (num_cpus / 2).max(2),
-            ConcurrencyLevel::Unlimited => num_cpus,
-        }
-    }
-
-    fn from_user_input(input: &str) -> Option<Self> {
-        match input.trim() {
-            "1" => Some(ConcurrencyLevel::Slow),
-            "2" => Some(ConcurrencyLevel::Medium),
-            "3" => Some(ConcurrencyLevel::Unlimited),
-            _ => None,
-        }
-    }
-}
+use crate::concurrency_config::get_concurrency_level;
 
 fn process_single_metadata(
     meta: &MediaMetadata,
@@ -137,7 +108,7 @@ pub fn embed_metadata_all(metadata_list: &[MediaMetadata], log_dir: &Path) {
     let _ = fs::create_dir_all(&logs_dir);
     let _log_file = File::create(&log_path).expect("Failed to create log file");
 
-    // Prompt 1: Metadata vs Filename choice
+    // Prompt: Metadata vs Filename choice
     println!("\nDo you want to embed date/time for WhatsApp & Screenshot images based on their:");
     println!("1. Metadata");
     println!("2. Filename");
@@ -146,24 +117,9 @@ pub fn embed_metadata_all(metadata_list: &[MediaMetadata], log_dir: &Path) {
     io::stdin().read_line(&mut input).expect("Failed to read line");
     let use_filename = matches!(input.trim(), "2");
 
-    // Prompt 2: Concurrency level choice
-    println!("\nSelect processing speed (concurrency level):");
-    println!("1. Slow (2-4 threads) - For limited resources");
-    println!("2. Medium (half CPU cores) - RECOMMENDED for balanced performance");
-    println!("3. Unlimited (all CPU cores) - Maximum speed, high resource usage");
-    println!("Enter 1, 2, or 3:");
-
-    let mut concurrency_input = String::new();
-    io::stdin().read_line(&mut concurrency_input).expect("Failed to read line");
-
-    let concurrency_level = ConcurrencyLevel::from_user_input(&concurrency_input)
-        .unwrap_or_else(|| {
-            println!("[WARNING] Invalid input, defaulting to Medium (recommended)");
-            ConcurrencyLevel::Medium
-        });
-
+    // Get concurrency configuration from shared config
+    let concurrency_level = get_concurrency_level();
     let thread_count = concurrency_level.get_thread_count();
-    println!("Using {} threads for parallel processing\n", thread_count);
 
     // Configure Rayon thread pool
     let pool = ThreadPoolBuilder::new()

@@ -1,11 +1,11 @@
 [package]
 name = "MetaSort"
-version = "1.0.0"
+version = "1.1.0-bberka"
 edition = "2021"
-authors = ["Sanmith S"]
-description = "MetaSort v1 – Cross-platform Google Photos Takeout Organizer"
+authors = ["Sanmith S", "Berkay"]
+description = "MetaSort v1.1.0-bberka – Cross-platform Google Photos Takeout Organizer with Parallel Processing"
 license = "Apache-2.0"
-repository = "https://github.com/iamsanmith/MetaSort"
+repository = "https://github.com/bberka/MetaSort"
 
 [dependencies]
 walkdir = "2"

@@ -11,6 +11,7 @@ mod csv_report;
 mod filename_date_guess;
 mod platform;
 mod ui;
+mod concurrency_config;
 
 use std::io;
 use std::path::PathBuf;
@@ -55,6 +56,10 @@ fn main() {
     }
     
     MetaSortUI::print_success("ExifTool found and ready!");
+
+    // Initialize concurrency configuration
+    concurrency_config::initialize_concurrency();
+
     println!("\nPlease drag and drop your Google Photos Takeout folder here, or specify the folder path:");
     let mut input = String::new();
     io::stdin().read_line(&mut input).expect("Failed to read line");

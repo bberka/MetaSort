@@ -6,7 +6,12 @@ use std::path::Path;
 use walkdir::WalkDir;
 use regex::Regex;
 use std::io::{self, Write};
-use crate::utils::log_to_file;
+use crate::utils::{log_to_file, BufferedLogger};
+use rayon::prelude::*;
+use rayon::ThreadPoolBuilder;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use crate::concurrency_config::get_concurrency_level;
 
 pub fn ask_and_separate_whatsapp_screenshots(base_path: &str, separate_wa_sc: bool) {
     if !separate_wa_sc {
@@ -27,44 +32,65 @@ pub fn ask_and_separate_whatsapp_screenshots(base_path: &str, separate_wa_sc: bo
     let _ = fs::create_dir_all(&screenshots_dir);
     let all_files: Vec<_> = WalkDir::new(base_path).into_iter().filter_map(Result::ok).filter(|e| e.path().is_file()).collect();
     let total = all_files.len();
-    let mut processed = 0;
-    for entry in all_files {
+    let processed = Arc::new(AtomicUsize::new(0));
+
+    // Create thread-safe logger
+    let logger = Arc::new(BufferedLogger::new(&logs_dir, "media_cleaning.log", 50));
+
+    // Get concurrency configuration and create thread pool
+    let concurrency_level = get_concurrency_level();
+    let thread_count = concurrency_level.get_thread_count();
+
+    let pool = ThreadPoolBuilder::new()
+        .num_threads(thread_count)
+        .build()
+        .expect("Failed to create thread pool");
+
+    // Parallel processing
+    pool.install(|| {
+        all_files.par_iter().for_each(|entry| {
         let path = entry.path();
         if let Some(filename) = path.file_name().and_then(|n| n.to_str()) {
             // WhatsApp
             if whatsapp_patterns.iter().any(|re| re.is_match(filename)) {
                 let dest = whatsapp_dir.join(filename);
                 let _ = fs::rename(path, &dest);
-                log_to_file(&logs_dir, "media_cleaning.log", &format!("Moved WhatsApp image {:?} to {:?}", path, dest));
+                logger.log(&format!("Moved WhatsApp image {:?} to {:?}", path, dest));
                 // Move .json if exists
                 let json_path = path.with_extension(format!("{}.json", path.extension().and_then(|e| e.to_str()).unwrap_or("")));
                 if json_path.exists() {
                     let json_dest = whatsapp_dir.join(json_path.file_name().unwrap());
                     let _ = fs::rename(&json_path, &json_dest);
-                    log_to_file(&logs_dir, "media_cleaning.log", &format!("Moved WhatsApp JSON {:?} to {:?}", json_path, json_dest));
+                    logger.log(&format!("Moved WhatsApp JSON {:?} to {:?}", json_path, json_dest));
                 }
-                processed += 1;
-                print_progress(processed, total, path);
-                continue;
+                let current = processed.fetch_add(1, Ordering::SeqCst) + 1;
+                print_progress(current, total, path);
+                return;
             }
             // Screenshot
             if screenshot_patterns.iter().any(|re| re.is_match(filename)) {
                 let dest = screenshots_dir.join(filename);
                 let _ = fs::rename(path, &dest);
-                log_to_file(&logs_dir, "media_cleaning.log", &format!("Moved Screenshot image {:?} to {:?}", path, dest));
+                logger.log(&format!("Moved Screenshot image {:?} to {:?}", path, dest));
                 // Move .json if exists
                 let json_path = path.with_extension(format!("{}.json", path.extension().and_then(|e| e.to_str()).unwrap_or("")));
                 if json_path.exists() {
                     let json_dest = screenshots_dir.join(json_path.file_name().unwrap());
                     let _ = fs::rename(&json_path, &json_dest);
-                    log_to_file(&logs_dir, "media_cleaning.log", &format!("Moved Screenshot JSON {:?} to {:?}", json_path, json_dest));
+                    logger.log(&format!("Moved Screenshot JSON {:?} to {:?}", json_path, json_dest));
                 }
-                processed += 1;
-                print_progress(processed, total, path);
+                let current = processed.fetch_add(1, Ordering::SeqCst) + 1;
+                print_progress(current, total, path);
             }
         }
-    }
-    println!("\n[SUCCESS] WhatsApp/Screenshot separation complete! Processed {} files.", processed);
+        });
+    });
+
+    // Flush logger
+    logger.flush();
+
+    let final_processed = processed.load(Ordering::SeqCst);
+    println!("\n[SUCCESS] WhatsApp/Screenshot separation complete! Processed {} files.", final_processed);
 }
 
 fn print_progress(done: usize, total: usize, file: &Path) {
