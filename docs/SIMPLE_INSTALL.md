@@ -1,85 +1,103 @@
-# 🚀 Simple Installation Guide for Non-Technical Users
+# MetaSort Installation Guide
 
-## macOS Users
+This guide covers the setup for the high-performance fork (v1.1.0-bberka). Follow the steps for your specific operating system.
 
-### Step 1: Install Dependencies
-Open Terminal and run these commands one by one:
+---
+
+## macOS
+
+### 1. Install System Dependencies
+
+Open **Terminal** (found in Applications > Utilities) and execute these commands sequentially:
+
+**Install Homebrew (Package Manager):**
 
 ```bash
-# Install Homebrew (if you don't have it)
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
 
-# Install Rust
+**Install Rust (Compiler):**
+
+```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-# Press 1 when prompted, then restart Terminal
+```
 
-# Install ExifTool
+_Note: Press `1` when prompted. Restart your Terminal after this step._
+
+**Install ExifTool:**
+
+```bash
 brew install exiftool
 ```
 
-### Step 2: Download and Build MetaSort
-```bash
-# Download MetaSort
-git clone https://github.com/iamsanmith/MetaSort.git
-cd MetaSort_v1.0.0
+### 2. Build the Application
 
-# Build and create launchers
+Navigate to your MetaSort folder in Terminal and run:
+
+```bash
+chmod +x scripts/build_macos.sh
 ./scripts/build_macos.sh
 ```
 
-### Step 3: Use MetaSort
-After building, you'll have two easy ways to run MetaSort:
+### 3. Execution
 
-1. **Double-click `Run_MetaSort.command`** (recommended)
-   - Opens MetaSort in a new terminal window
-   - Perfect for non-technical users
+- Use `Run_MetaSort.command` to launch in a new window.
+- Use `MetaSort.command` to launch in the existing window.
 
-2. **Double-click `MetaSort.command`**
-   - Runs MetaSort in the current terminal
-   - For advanced users
+---
 
-## Windows Users
+## Windows
 
-### Step 1: Quick Installation
-1. Download MetaSort from GitHub
-2. Right-click on `scripts/install_windows.bat` and select "Run as administrator"
-3. Follow the prompts
+### 1. Automated Setup (Recommended)
 
-### Step 2: Manual Installation (if quick install fails)
-1. Install Rust from https://rustup.rs/
-2. Install ExifTool using winget: `winget install ExifTool.ExifTool`
-3. Open Command Prompt in the MetaSort folder
-4. Run: `cargo build --release`
-5. Run: `cargo run --release`
+1. Locate the `scripts` folder inside the MetaSort directory.
+2. Right-click `install_windows.bat` and select **Run as Administrator**.
+3. Follow the on-screen prompts.
 
-## 🎯 What MetaSort Does
+### 2. Manual Setup (Fallback)
 
-MetaSort helps you organize your Google Photos Takeout (or any messy photo folder) by:
+If the automated script fails, perform the following:
 
-- 🧹 Cleaning up file names
-- 📅 Sorting photos by date
-- 🏷️ Adding missing metadata
-- 📊 Creating beautiful reports
-- 📁 Organizing everything into neat folders
+1. **Install Rust**: Download and run the installer from [https://rustup.rs/](https://rustup.rs/).
+2. **Install ExifTool**: Open Command Prompt and run:
+   ```cmd
+   winget install ExifTool.ExifTool
+   ```
+3. **Build**: In the MetaSort folder, run:
+   ```cmd
+   cargo build --release
+   ```
+4. **Run**:
+   ```cmd
+   ./target/release/metasort.exe
+   ```
 
-## 🆘 Troubleshooting
+---
 
-### "ExifTool not found" Error
-- **macOS**: Run `brew install exiftool` in Terminal
-- **Windows**: Run `winget install ExifTool.ExifTool` in Command Prompt
+## Troubleshooting
 
-### "Rust not found" Error
-- **macOS**: Run `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
-- **Windows**: Download and install from https://rustup.rs/
+### Dependency Errors
 
-### App won't open on macOS
-- Right-click the app → Open
-- Or use the `.command` files instead
+- **ExifTool not found**: Ensure the installation command finished without errors. On Windows, you may need to restart your terminal for the PATH to update.
+- **Rust/Cargo not found**: Ensure you restarted your terminal after installing Rust.
 
-## 📞 Need Help?
+### Permissions (macOS)
 
-If you're still having trouble:
-1. Check that all dependencies are installed
-2. Make sure you're running the commands in the correct directory
-3. Try the alternative launcher options
-4. Check the main README.md for detailed instructions 
+If you see a "Permission Denied" error when running scripts, run:
+
+```bash
+chmod +x scripts/*.sh
+```
+
+### macOS Security
+
+If the application is blocked from running:
+
+1. Open **System Settings** > **Privacy & Security**.
+2. Scroll down and click **Open Anyway** next to the MetaSort notice.
+
+---
+
+## Technical Support
+
+For detailed command-line options and performance configuration, refer to the main `README.md`.

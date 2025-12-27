@@ -1,57 +1,56 @@
-# 📁 MetaSort Project Structure
+### PROJECT_STRUCTURE.md
 
-## 🎯 Quick Start Files (Root Directory)
-- **`Run_MetaSort.command`** - Double-click to open MetaSort in new terminal (recommended for non-technical users)
-- **`MetaSort.command`** - Double-click to run MetaSort in current terminal
-- **`README.md`** - Main documentation and installation guide
+# Project Architecture and Directory Layout
 
-## 📂 Organized Directories
+## Root Directory
 
-### `/scripts/` - Build and Installation Scripts
-- **`build_macos.sh`** - Builds MetaSort and creates macOS launchers
-- **`build_windows.bat`** - Builds MetaSort for Windows
-- **`build_all.sh`** - Universal build script (detects platform)
-- **`install_windows.ps1`** - PowerShell installation helper for Windows
-- **`install_windows.bat`** - Batch installation helper for Windows
+- `Run_MetaSort.command`: macOS entry point (new terminal instance).
+- `MetaSort.command`: macOS entry point (current terminal instance).
+- `Cargo.toml`: Rust package manifest and dependency definitions.
+- `README.md`: Primary documentation.
+- `LICENSE.txt`: Apache 2.0 license text.
 
-### `/docs/` - Documentation
-- **`SIMPLE_INSTALL.md`** - Step-by-step guide for non-technical users
-- **`CROSS_PLATFORM_CHANGES.md`** - Technical details of cross-platform implementation
+## Directory Breakdown
 
-### `/src/` - Source Code
-- **`main.rs`** - Main application entry point
-- **`platform.rs`** - Cross-platform compatibility layer
-- **`ui.rs`** - User interface and progress bars
-- **`media_cleaning.rs`** - File cleaning and organization
-- **`metadata_extraction.rs`** - Metadata extraction from JSON
-- **`metadata_embed.rs`** - Embedding metadata into files
-- **`sort_to_folders.rs`** - File sorting and folder creation
-- **`csv_report.rs`** - CSV report generation
-- **`html_report.rs`** - HTML report generation
-- **`filename_date_guess.rs`** - Date extraction from filenames
-- **`utils.rs`** - Utility functions
+### /src/ (Core Logic)
 
-### `/assets/` - Resources
-- **`logo.png`** - MetaSort logo
-- **`upi.png`** - UPI QR code for donations
+- `main.rs`: Application entry point and CLI argument parsing.
+- `platform.rs`: Abstraction layer for cross-platform filesystem operations.
+- `ui.rs`: Console UI implementation and progress bar management.
+- `media_cleaning.rs`: Logic for filename sanitization and duplicate handling.
+- `metadata_extraction.rs`: Parser for Google Takeout JSON sidecar files.
+- `metadata_embed.rs`: Wrapper for ExifTool interaction and metadata writing.
+- `sort_to_folders.rs`: Directory hierarchy generation logic.
+- `csv_report.rs`: Machine-readable processing log generator.
+- `html_report.rs`: Statistical summary and web-report generator.
+- `filename_date_guess.rs`: Regex-based date extraction from filename patterns.
+- `utils.rs`: Shared helper functions and common types.
 
-### `/target/` - Build Output
-- Compiled executables and build artifacts
+### /scripts/ (Automation)
 
-## 🚀 How to Use
+- `build_macos.sh`: Compilation and launcher generation for Darwin targets.
+- `build_windows.bat`: MSVC/MinGW build automation.
+- `build_all.sh`: Shell-agnostic build dispatcher.
+- `install_windows.ps1`: Automated dependency and environment setup (PowerShell).
+- `install_windows.bat`: Legacy batch wrapper for environment setup.
 
-### For Non-Technical Users:
-1. **Double-click `Run_MetaSort.command`** - Opens MetaSort in a new terminal window
-2. Follow the prompts to organize your photos
+### /docs/ (Technical Reference)
 
-### For Developers:
-1. **Build**: `./scripts/build_macos.sh` (macOS) or `./scripts/build_windows.bat` (Windows)
-2. **Run**: `cargo run --release`
-3. **Install dependencies**: See `docs/SIMPLE_INSTALL.md`
+- `SIMPLE_INSTALL.md`: Dependency setup guide.
+- `CROSS_PLATFORM_CHANGES.md`: Internal documentation regarding platform-specific implementation details.
 
-## 🎯 Key Features
-- ✅ **Cross-platform** - Works on macOS and Windows
-- ✅ **User-friendly** - Multiple launcher options
-- ✅ **Clean organization** - Well-structured codebase
-- ✅ **Easy installation** - Automated scripts for both platforms
-- ✅ **Comprehensive docs** - Separate guides for different user types 
+### /assets/ (Static Resources)
+
+- `logo.png`: Application branding.
+- `upi.png`: Payment gateway assets.
+
+---
+
+## Dependency Graph (High Level)
+
+1. **Input**: CLI Arguments -> `main.rs`
+2. **Indexing**: `media_cleaning.rs` scans source directory.
+3. **Metadata**: `metadata_extraction.rs` + `filename_date_guess.rs` correlate data.
+4. **Execution**: `metadata_embed.rs` invokes ExifTool via `rayon` (concurrency).
+5. **Organization**: `sort_to_folders.rs` moves/copies files to final hierarchy.
+6. **Reporting**: `csv_report.rs` + `html_report.rs` finalize logs.
