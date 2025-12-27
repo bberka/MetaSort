@@ -1,4 +1,4 @@
-# MetaSort v1.1.0-bberka
+# MetaSort - bberka
 
 MetaSort is a high-performance Rust utility for processing and organizing Google Photos Takeout exports. It correlates detached JSON metadata back to media files and embeds information directly into EXIF headers while sorting files into a logical hierarchy.
 
