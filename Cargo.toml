@@ -17,6 +17,7 @@ csv = "1.3"
 fs_extra = "1.3"
 url = "2"
 indicatif = "0.17"
+rayon = "1.10"
 
 # Note: exiftool must be installed on the system (external dependency)
 # Cross-platform support: macOS, Windows, and Linux 
